@@ -25,9 +25,8 @@ function draw() {
 }
 
 function displayScore() {
-  console.log('displaying score');
-  fill('green');
-  text(`Score: ${score}`, 10, 20);
+  fill(0);
+  text(`Score: ${score}`, 20, 20);
 }
 
 class Snake {
@@ -37,22 +36,10 @@ class Snake {
     this.y = height - 10;
     this.direction = 'N';
     this.speed = 12;
-    this.tail = []; // Array of TailSegment
+    this.tail = [new TailSegment(this.x, this.y)];
   }
 
   moveSelf() {
-    if (this.tail.length > 0) {
-      // Before moving the head, update the tail segments.
-      // Take the segment at the back of the tail off.
-      this.tail.pop();
-
-      // Add a new segment at the front, which is where the
-      // head (this.x, this.y) is now.
-      let frontSegment = new TailSegment(this.x, this.y);
-      this.tail.unshift(frontSegment);
-    }
-    
-    
     if (this.direction === "N") {
       this.y -= this.speed;
     } else if (this.direction === "S") {
@@ -64,71 +51,80 @@ class Snake {
     } else {
       console.log("Error: invalid direction");
     }
+    this.tail.unshift(new TailSegment(this.x, this.y));
+    this.tail.pop();
   }
 
   showSelf() {
-    // stroke(240, 100, 100);
-    noStroke();
-    fill('purple');
+    stroke(240, 100, 100);
+    noFill();
     rect(this.x, this.y, this.size, this.size);
     noStroke();
-    
-    // Show its tail
     for (let i = 0; i < this.tail.length; i++) {
       this.tail[i].showSelf();
     }
   }
 
   checkApples() {
-    let snakeEatsApple = collideRectRect(
-        this.x, this.y, 
-        this.size, this.size, 
-        currentApple.x, currentApple.y, 
-        currentApple.size, currentApple.size);
-    if (snakeEatsApple) {
-      score++;
+    // If the head of the snake collides with the apple...
+    if (collideRectRect(this.x, this.y, this.size, this.size,
+        currentApple.x, currentApple.y, currentApple.size, currentApple.size)) {
+      // Make a new apple, increment the score, and extend the tail.
+      score += 1;
       currentApple = new Apple();
       this.extendTail();
     }
   }
 
-  checkCollisions() {}
+  checkCollisions() {
+    if (this.tail.length > 2) {
+      for (let i=1; i < this.tail.length; i++) {
+        if (this.x == this.tail[i].x && this.y == this.tail[i].y) {
+          gameOver();
+        }
+        // This helper text will show the index of each tail segment.
+        // text(i, this.tail[i].x, this.tail[i].y)
+      }
+    }
+  }
 
   extendTail() {
-    this.tail.push(new TailSegment(this.x, this.y));
+    // Add a new segment by duplicating whatever you find at the end of the tail.
+    let lastTailSegment = this.tail[this.tail.length - 1];
+    // Push a new tail segment to the end, using the same position as the
+    // current last segment of the tail.
+    this.tail.push(new TailSegment(lastTailSegment.x, lastTailSegment.y));
   }
 }
 
 class TailSegment {
-  constructor(startX, startY) {
-    this.x = startX;
-    this.y = startY;
-    this.size = 9;
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 10;
   }
 
   showSelf() {
-    noStroke();
-    fill('purple');
+    fill(0);
     rect(this.x, this.y, this.size, this.size);
   }
 }
 
 class Apple {
   constructor() {
-    this.x = random(width);
-    this.y = random(height);
+    this.x = round(random(width - 10));
+    this.y = round(random(height - 10));
     this.size = 10;
   }
 
   showSelf() {
-    noStroke();
-    fill('red');
+    fill(0, 80, 80);
     rect(this.x, this.y, this.size, this.size);
   }
 }
 
 function keyPressed() {
-  console.log("key pressed: ", keyCode)
+  console.log("key pressed: ", keyCode);
   if (keyCode === UP_ARROW && playerSnake.direction != 'S') {
     playerSnake.direction = "N";
   } else if (keyCode === DOWN_ARROW && playerSnake.direction != 'N') {
@@ -137,11 +133,22 @@ function keyPressed() {
     playerSnake.direction = "E";
   } else if (keyCode === LEFT_ARROW && playerSnake.direction != 'E') {
     playerSnake.direction = "W";
+  } else if (keyCode === 32) {
+    restartGame();
   } else {
     console.log("wrong key");
   }
 }
 
-function restartGame() {}
+function restartGame() {
+  score = 0;
+  playerSnake = new Snake();
+  currentApple = new Apple();
+  loop();
+}
 
-function gameOver() {}
+function gameOver() {
+  stroke(0);
+  text("GAME OVER", 50, 50);
+  noLoop();
+}
